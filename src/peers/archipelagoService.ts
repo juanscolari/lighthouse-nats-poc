@@ -1,13 +1,9 @@
-import {
-  ArchipelagoController,
-  defaultArchipelagoController,
-  Island,
-  IslandUpdates,
-  PeerPositionChange
-} from '@dcl/archipelago'
+import { ArchipelagoController, Island, IslandUpdates, PeerPositionChange } from '@dcl/archipelago'
+import { NatsConnection } from 'nats'
 import { ConfigService, LighthouseConfig } from '../config/configService'
 import { metricsComponent } from '../metrics'
 import { AppServices } from '../types'
+import { ArchipelagoNats } from './archipelagoController'
 import { PeersService } from './peersService'
 import { PeerOutgoingMessageType } from './protocol/messageTypes'
 
@@ -16,15 +12,20 @@ export class ArchipelagoService {
   private readonly peersServiceGetter: () => PeersService
   private readonly configService: ConfigService
 
-  constructor({ configService, peersService }: Pick<AppServices, 'configService' | 'peersService'>) {
-    this.controller = defaultArchipelagoController({
-      flushFrequency: configService.get(LighthouseConfig.ARCHIPELAGO_FLUSH_FREQUENCY),
-      archipelagoParameters: {
-        joinDistance: configService.get(LighthouseConfig.ARCHIPELAGO_JOIN_DISTANCE),
-        leaveDistance: configService.get(LighthouseConfig.ARCHIPELAGO_LEAVE_DISTANCE),
-        maxPeersPerIsland: configService.get(LighthouseConfig.MAX_PEERS_PER_ISLAND)
-      }
-    })
+  constructor(
+    { configService, peersService }: Pick<AppServices, 'configService' | 'peersService'>,
+    nc: NatsConnection
+  ) {
+    // this.controller = defaultArchipelagoController({
+    //   flushFrequency: configService.get(LighthouseConfig.ARCHIPELAGO_FLUSH_FREQUENCY),
+    //   archipelagoParameters: {
+    //     joinDistance: configService.get(LighthouseConfig.ARCHIPELAGO_JOIN_DISTANCE),
+    //     leaveDistance: configService.get(LighthouseConfig.ARCHIPELAGO_LEAVE_DISTANCE),
+    //     maxPeersPerIsland: configService.get(LighthouseConfig.MAX_PEERS_PER_ISLAND)
+    //   }
+    // })
+
+    this.controller = new ArchipelagoNats(nc)
 
     configService.listenTo(LighthouseConfig.ARCHIPELAGO_JOIN_DISTANCE, (joinDistance) =>
       this.controller.modifyOptions({ joinDistance })

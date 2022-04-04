@@ -25,6 +25,7 @@ import { peersCheckJob } from './peers/peersCheckJob'
 import { PeersService } from './peers/peersService'
 import { configureRoutes } from './routes'
 import { AppServices } from './types'
+import { connect } from 'nats'
 
 const LIGHTHOUSE_PROTOCOL_VERSION = '1.0.0'
 const DEFAULT_ETH_NETWORK = 'ropsten'
@@ -110,7 +111,10 @@ async function main() {
 
   const peersService = new PeersService(getPeerJsRealm, appServices)
 
-  const archipelagoService = new ArchipelagoService(appServices)
+  const natsAddress = process.env.NATS_ADDRESS
+  const natsServer = { servers: natsAddress }
+  const nc = await connect(natsServer)
+  const archipelagoService = new ArchipelagoService(appServices, nc)
 
   configureRoutes(app, appServices, {
     name,
